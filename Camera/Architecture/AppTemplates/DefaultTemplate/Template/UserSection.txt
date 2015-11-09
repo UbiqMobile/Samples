@@ -1,0 +1,42 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Label#1
+{
+    public partial class Label#1
+    {
+        protected async Task UserSection()
+        {
+            try
+            {
+                //Firstly, tries connect by client id, then by username
+                //_template0InPort1.AutoLogin("Username", null);
+
+                //Suspended += Label#1_Suspended;
+                //Resumed += Label#1_Resumed;
+
+                for (; ; )
+                {
+                    await Wait();
+                }
+            }
+            finally
+            {
+                //_template0InPort1.Close();
+            }
+        }
+
+        //void GameTemplate_Resumed(object arg1, EventArgs arg2)
+        //{
+        //    _template0InPort1.Login();
+        //}
+
+        //void GameTemplate_Suspended(object arg1, EventArgs arg2)
+        //{
+        //    _template0InPort1.Logoff();
+        //}
+    }
+}

@@ -1,0 +1,27 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using Ubiq.InterfaceAPI;
+using Ubiq.Attributes;
+using Ubiq.Subcore;
+Label#3
+
+[assembly: Ubiq.Attributes.UbiqUID("Label#2")]
+
+namespace Label#1
+{
+	Label#4
+	[Ubiq.Attributes.AppDescription("Label#1")]
+	partial class Label#1 : UbiqService
+    {
+		Label#5
+		internal const string ServiceName = "Label#1";
+		
+        
+		protected override async Task Main()
+        {
+			Label#6
+			await UserSection();
+        }
+    }
+}

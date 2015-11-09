@@ -1,0 +1,19 @@
+﻿
+
+
+
+
+
+
+
+
+
+Counter = 1
+	// Generated helper templates
+// Generated items
+// Generated helper templates
+// Counter\CounterUI\GeneratedCode
+// Generated items
+// Counter\CounterUI\UserSection.cs
+// Counter\CounterUI\CounterUI.cs
+

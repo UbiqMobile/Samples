@@ -1,0 +1,19 @@
+﻿
+
+
+
+
+
+
+
+
+
+Counter = 1
+	// Generated helper templates
+// Generated items
+// Generated helper templates
+// Camera\CameraUI\GeneratedCode
+// Generated items
+// Camera\CameraUI\UserSection.cs
+// Camera\CameraUI\CameraUI.cs
+

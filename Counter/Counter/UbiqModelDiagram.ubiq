@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<componentModel xmlns:dm0="http://schemas.microsoft.com/VisualStudio/2008/DslTools/Core" dslVersion="1.0.0.0" Id="334f421c-5f3f-42cb-a87f-56cd79e282c1" xmlns="http://schemas.microsoft.com/dsltools/UbiqDesigner">
+  <customComponents>
+    <componentModelHasCustomComponents Id="10311430-eab6-4140-9d05-b1ddcd87a555">
+      <application Id="8a6be10a-4252-4830-8aaf-03b0fad1f833" name="CounterUI" chanel="1" />
+    </componentModelHasCustomComponents>
+  </customComponents>
+</componentModel>

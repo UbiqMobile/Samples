@@ -1,0 +1,30 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2012
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Architecture", "Counter\Architecture.csproj", "{B44269A0-DE8A-4751-9718-175B5F51B940}"
+	ProjectSection(ProjectDependencies) = postProject
+		{673EDC06-1FED-4380-98E9-6040C828BCFB} = {673EDC06-1FED-4380-98E9-6040C828BCFB}
+		{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3} = {A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CounterUI", "CounterUI\CounterUI.csproj", "{673EDC06-1FED-4380-98E9-6040C828BCFB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B44269A0-DE8A-4751-9718-175B5F51B940}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B44269A0-DE8A-4751-9718-175B5F51B940}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B44269A0-DE8A-4751-9718-175B5F51B940}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B44269A0-DE8A-4751-9718-175B5F51B940}.Release|Any CPU.Build.0 = Release|Any CPU
+		{673EDC06-1FED-4380-98E9-6040C828BCFB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{673EDC06-1FED-4380-98E9-6040C828BCFB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{673EDC06-1FED-4380-98E9-6040C828BCFB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{673EDC06-1FED-4380-98E9-6040C828BCFB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

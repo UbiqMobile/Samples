@@ -1,0 +1,24 @@
+﻿
+
+
+
+
+
+
+
+
+
+Counter = 1
+	// Generated helper templates
+// ServiceSample\ServiceDemo\GeneratedCode
+// Generated items
+// ServiceSample\ServiceDemo\ServiceDemo.cs
+// ServiceSample\ServiceDemo\UserSection.cs
+// ServiceSample\ServiceDemo\ServiceDemoMessageType.cs
+// ServiceSample\ServiceDemo\ServiceDemoApiName.cs
+// Generated helper templates
+// ServiceSample\DemoUI\GeneratedCode
+// Generated items
+// ServiceSample\DemoUI\UserSection.cs
+// ServiceSample\DemoUI\DemoUI.cs
+

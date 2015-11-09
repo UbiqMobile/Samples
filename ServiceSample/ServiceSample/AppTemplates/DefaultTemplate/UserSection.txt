@@ -1,0 +1,32 @@
+﻿//-----------------------------User-section----------------------------------------------------
+//  <User-defined part of application>
+//
+//      This is partial class that can be invoked from main entry point
+//      This class is purposed for user-defined bussines logic of the application
+//      The user should add proprietary code.
+//      All modifications will be preserved during all automatic re-generations of the project
+//  </User-defined part of application>
+//----------------------------------------------------------------------------------------------
+
+
+using System;
+using Ubiq.Graphics;
+using System.Threading.Tasks;
+
+namespace Label#1
+{
+    partial class Label#1
+    {
+	    //User section for bussines logic
+	    //Your code should be inserted here
+        protected async Task UserSection()
+        {
+			Screen.Content = _ubiqdesign;
+			for (; ; )
+            {
+                await Wait();
+            }
+        }
+	}
+}
+

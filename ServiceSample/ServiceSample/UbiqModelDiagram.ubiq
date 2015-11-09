@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<componentModel xmlns:dm0="http://schemas.microsoft.com/VisualStudio/2008/DslTools/Core" dslVersion="1.0.0.0" Id="334f421c-5f3f-42cb-a87f-56cd79e282c1" xmlns="http://schemas.microsoft.com/dsltools/UbiqDesigner">
+  <customComponents>
+    <componentModelHasCustomComponents Id="e43316f1-e6e4-46bf-8c0a-105ff4b3314f">
+      <application Id="c0acd0ce-6f94-4d4e-9b2d-b746706e9baa" name="DemoUI" chanel="1">
+        <ports>
+          <inPort Id="219f3b6f-5c52-403d-9a81-37ee9d3a23bf" name="Application0InPort0" />
+        </ports>
+      </application>
+    </componentModelHasCustomComponents>
+    <componentModelHasCustomComponents Id="7c132970-8c60-4e79-bfd6-b04a276448db">
+      <service Id="d0b51b38-1e99-407a-a09b-66475b26d5c0" name="ServiceDemo">
+        <ports>
+          <outPort Id="fe59b5d3-03db-495f-a352-2dd0237c351e" name="ArchitectureService0OutPort0">
+            <targets>
+              <connection Id="3bfc0876-4328-4539-8338-90d3e3241079">
+                <inPortMoniker name="/334f421c-5f3f-42cb-a87f-56cd79e282c1/DemoUI/Application0InPort0" />
+              </connection>
+            </targets>
+          </outPort>
+        </ports>
+      </service>
+    </componentModelHasCustomComponents>
+  </customComponents>
+</componentModel>

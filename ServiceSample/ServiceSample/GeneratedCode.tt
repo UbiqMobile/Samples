@@ -1,0 +1,1048 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+
+<#@ template hostspecific="true" language="C#" debug="True"  inherits="Microsoft.VisualStudio.TextTemplating.VSHost.ModelingTextTransformation" #>
+<#@ output extension="txt" #>
+
+<#@ assembly name="EnvDTE, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"#>
+<#@ import namespace="EnvDTE" #>
+<#@ assembly name="EnvDTE80, Version=8.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"#>
+<#@ import namespace="EnvDTE80" #>
+
+<#@ UbiqDesigner processor="UbiqDesignerDirectiveProcessor" requires="fileName='UbiqModelDiagram.ubiq'"  #>
+
+<#@ include file="FileManager.ttinclude" #>
+
+<#
+	TemplateFileManager manager = null;
+	//var message = "Solution will be auto generated. Continue?";
+	//const string caption = "Ubiq generator";
+	//var msgResult  = System.Windows.Forms.MessageBox.Show(message, caption,
+									//System.Windows.Forms.MessageBoxButtons.YesNo,
+									//System.Windows.Forms.MessageBoxIcon.Warning);
+
+	//if (msgResult == System.Windows.Forms.DialogResult.No)
+    //{
+        //return null;
+    //}
+
+	int counter = 0;
+	while(manager == null || counter >= 1000) {try{ manager=TemplateFileManager.Create(this); counter++; }catch{}}
+	#>Counter = <#= counter #>
+	<#
+	var appManager = TemplateFileManager.Create(this);
+	GetCurrentDte();
+	SaveAllProjects();
+	this.ProjectName = this.GetBaseProjectName();
+	this.ProjectPath = String.Format(@"{0}\", Path.GetDirectoryName(_dte.Solution.FullName)); 
+	this.AssemblyPath = String.Format(@"{0}\Output\Library\", Path.GetDirectoryName(_dte.Solution.FullName)); 
+	this.ServerPath = String.Format(@"{0}\Server\", Path.GetDirectoryName(_dte.Solution.FullName)); 
+
+	foreach (var prj in _dte.Solution.Projects.Cast<Project>().Where(prj => prj.Name == "Architecture"))
+	{
+		try
+		{
+			document = XDocument.Load(Regex.Replace(prj.FullName, "Architecture.csproj", "Solution.xml"));
+			break;
+		}
+		catch
+		{
+			return String.Empty;
+		}
+	}
+		
+	#region Create all templates, build projects
+	var listTemplates = document.Root.Elements("Projects").Where(t => t.Attribute("Type").Value == "Template").ToList();
+	foreach (var prjTemp in listTemplates)
+	{
+		var tempProjectName = prjTemp.Attribute("Name").Value; 
+		var tempUbiqTemplate = Convert.ToBoolean(prjTemp.Attribute("UbiqTemplate").Value);
+
+		if (!IsProjectExist(tempProjectName))
+		{
+			ClearFolder(this.ProjectPath+tempProjectName);
+			CreateNewProject1(tempProjectName, this.ProjectPath+tempProjectName);
+			CreateLibsReference(tempProjectName, this.AssemblyPath);
+			CreateServerReference(tempProjectName, this.ServerPath);
+		}
+		
+		var templatePath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\Template\";
+		if (tempUbiqTemplate)
+		{
+			templatePath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\Template\1\";
+		}
+
+//////USER SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		manager.StartNewFile("UserSection.cs", tempProjectName);		
+		var files = Directory.GetFiles(templatePath, "UserSection.txt");
+		
+		foreach (var file in files)
+		{	
+			if(!File.Exists(this.ProjectPath + tempProjectName +"\\UserSection.cs"))
+
+			{ 
+				this.FileSource = String.Empty;
+				this.FileSource = File.ReadAllText(file);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#1", tempProjectName);
+			}
+			else
+			{
+				this.FileSource = File.ReadAllText(this.ProjectPath + tempProjectName +"\\UserSection.cs");
+			}
+#><#=this.FileSource#>
+<#
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2", tempProjectName);
+			File.WriteAllText(this.ProjectPath + tempProjectName +"\\"+csFile+".cs", this.FileSource);
+		}
+
+
+//////TEMPLATE SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		manager.StartNewFile(tempProjectName + ".cs", tempProjectName);
+		files = Directory.GetFiles(templatePath, "Label2.txt");
+		
+		foreach (var file in files)
+		{	
+
+			this.FileSource = String.Empty;
+			this.FileSource = File.ReadAllText(file);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#1", tempProjectName);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#2", Guid.NewGuid().ToString());
+
+			var usingVar = String.Empty;
+			var libName = String.Empty;
+			var apiName = String.Empty;
+			var libPublish = String.Empty;
+			var libInterface = String.Empty;
+
+			var sb = new StringBuilder();
+			var sb4 = new StringBuilder();
+			var sb5 = new StringBuilder();
+			var sb6 = new StringBuilder();
+
+			var tempRefs = prjTemp.Elements("References").ToList();
+			foreach (var tempRef in tempRefs)
+			{
+				var libRef = document.Root.Elements("Libraries").Where(t => t.Attribute("Name").Value == tempRef.Attribute("Name").Value).FirstOrDefault();
+				var srvRef = document.Root.Elements("Projects").Where(t => t.Attribute("Name").Value == tempRef.Attribute("Name").Value).FirstOrDefault();
+
+				if(libRef == null && srvRef != null) 
+				{
+					usingVar = srvRef.Attribute("Name").Value;
+					apiName = srvRef.Attribute("ApiName").Value;
+				}
+				else if (libRef != null && srvRef == null) //for ubiq libs only
+				{
+					usingVar = libRef.Attribute("GetLibNamespace").Value;
+					libName = libRef.Attribute("GetLibName").Value;
+				}
+				else
+				{
+					continue;
+				}
+
+				var usings = usingVar.Split(';');
+				foreach (var tmp in usings)
+				{
+					usingVar = String.Format("using {0};", tmp);
+					sb.AppendLine(usingVar);
+
+				}
+
+				if (srvRef != null)
+				{
+			
+					var tempProject = document.Root.Elements("Projects").Where(t => t.Attribute("Type").Value == "Template").ToList();
+					foreach (var item in tempProject)
+					{
+						var rootItem = item.Descendants().Where(t => t.Attribute("Name").Value == srvRef.Attribute("Name").Value).FirstOrDefault();
+						var str = String.Format("\t\tprivate {0} {1};", apiName, rootItem.Attribute("SubscribeName").Value);
+						sb5.AppendLine(str);
+						var strServType = String.Format("\t\t{0} = new {1}(this);", rootItem.Attribute("SubscribeName").Value, apiName);
+						sb6.AppendLine(strServType);
+						libName = String.Empty;
+
+					}
+
+				}
+
+				if (libName == "DBService") 
+				{
+					libInterface = libRef.Attribute("Interface").Value;
+					var libType = libRef.Attribute("LibType").Value;
+					var body = '\u007b' + "get; set;" + '\u007d';
+					var str = String.Format("\t\tprivate {0} DataBase {1}", libInterface, body);
+					var strType = String.Format("\t\t\tDataBase = new {0}(this);", libType);
+					strType = Regex.Replace(strType, "Label12", tempProjectName);
+					sb5.AppendLine(str);
+					sb6.AppendLine(strType);
+					continue;
+				}
+				
+				if (libName == "UbiqDispatcher")
+				{
+					var libType = libRef.Attribute("LibType").Value; 
+					var tempSubsName = tempRef.Attribute("SubscribeName").Value; 
+					var libPub = libRef.Attribute("Publish").Value; 
+					var strType = String.Format("{0} = new {1}(this,"+'\u0022'+"{2}"+'\u0022'+");", tempSubsName, libType, libPub);
+					var str = String.Format(@"private {0} {1};", libType, tempSubsName);
+					sb5.AppendLine(str);
+					sb6.AppendLine(strType);
+				}
+
+				if(libRef != null)
+				{
+					libPublish = libRef.Attribute("Publish").Value;
+					sb4.AppendLine(String.Format("[Service("+'\u0022'+"{0}"+'\u0022'+","+'\u0022'+"{1}"+'\u0022'+")]",libName,libPublish));
+				}
+			}
+			
+			//using Ubiq.DispatcherAPI;
+			this.FileSource = Regex.Replace(this.FileSource, "Label#3", String.IsNullOrEmpty(sb.ToString()) ? String.Empty : sb.ToString());
+			
+			//[Service("UbiqDispatcher","IDispatcher")]
+			this.FileSource = Regex.Replace(this.FileSource, "Label#4", String.IsNullOrEmpty(sb4.ToString()) ? String.Empty : sb4.ToString() );
+			
+			//private IExtendedDBAPI DataBase { get; set; }
+			//private DispatcherSAPI _application0InPort0;
+			//private UbiqInterface _serviceOutPort0 = null; !!!
+			this.FileSource = Regex.Replace(this.FileSource, "Label#5", String.IsNullOrEmpty(sb5.ToString()) ? String.Empty : sb5.ToString() );
+			
+			//DataBase = new DBAPI<ArchitectureService1>(this);
+			//_application0InPort0 = new DispatcherSAPI(this, "IDispatcher");
+			//_serviceOutPort0 = UbiqInterface.PublishInterface(this, "ArchitectureService0", InterfaceAttrs.Duplex);!!!
+			this.FileSource = Regex.Replace(this.FileSource, "Label#6", String.IsNullOrEmpty(sb6.ToString()) ? String.Empty : sb6.ToString() );
+
+			//[UbiqTemplate(true)]
+			this.FileSource = Regex.Replace(this.FileSource, "Label#9", String.IsNullOrEmpty(tempUbiqTemplate.ToString()) ? String.Empty : tempUbiqTemplate.ToString().ToLower() );
+
+
+#><#=this.FileSource#>
+<#
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2", tempProjectName);
+			File.WriteAllText(this.ProjectPath + tempProjectName +"\\"+csFile+".cs", this.FileSource);
+
+		}
+	}
+
+	foreach (var prjTemp in listTemplates)
+	{
+		var prjTempName = prjTemp.Attribute("Name").Value; 
+		ProjectBuilder(this.ProjectPath + prjTempName, prjTempName);
+	}
+	#endregion
+	#region Create all services, build projects
+	var listServices = document.Root.Elements("Projects").Where(t => t.Attribute("Type").Value == "Service").ToList();
+	foreach (var prjServ in listServices)
+	{
+		var servProjectName = prjServ.Attribute("Name").Value; 
+		if (!IsProjectExist(servProjectName))
+		{
+			ClearFolder(this.ProjectPath+servProjectName);
+			CreateNewProject1(servProjectName, this.ProjectPath+servProjectName);
+			CreateLibsReference(servProjectName, this.AssemblyPath);
+			CreateServerReference(servProjectName, this.ServerPath);
+		}
+			
+		#region Generate code (ApiName, MessageType,UserSection)
+		var templatePath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\Service\";
+			
+		var servApiName = prjServ.Attribute("ApiName").Value;
+		var servMsgType = prjServ.Attribute("MessageType").Value;
+		
+		var servPublish =String.Empty;
+		if (prjServ.Attribute("Publish")!= null)
+			servPublish = prjServ.Attribute("Publish").Value;
+		
+//////API SERVICE//////////////////////////////////////////////////////////////////////////////////////////////////		
+		string[] files = null;
+		try
+		{
+			manager.StartNewFile(servApiName+".cs", servProjectName);
+			files = Directory.GetFiles(templatePath, "Label2ServiceApiName.txt");
+			foreach (var file in files)
+			{
+				string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+				csFile = Regex.Replace(csFile, "Label2Service", servProjectName);
+				var newfilename=this.ProjectPath + servProjectName +"\\"+csFile+".cs";
+				if(!File.Exists(newfilename))
+		{
+				this.FileSource = File.ReadAllText(file);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#1", servProjectName);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#2", servMsgType);
+		//		File.WriteAllText( newfilename, this.FileSource);
+				}
+				else
+				{
+		 			this.FileSource = File.ReadAllText(newfilename);
+				}	
+	#><#=this.FileSource#>
+	<#
+	//			  File.WriteAllText(newfilename, this.FileSource);	
+			}
+		}
+		catch
+		{
+		}
+//////MESSAGE SERVICE//////////////////////////////////////////////////////////////////////////////////////////////////		
+		manager.StartNewFile(servMsgType+".cs", servProjectName);
+		
+		files = Directory.GetFiles(templatePath, "Label2ServiceMessageType.txt");
+				
+		foreach (var file in files)
+		{
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2Service", servProjectName);
+			var newfilename=this.ProjectPath + servProjectName +"\\"+csFile+".cs";
+			if(!File.Exists(newfilename))
+			{
+				this.FileSource = File.ReadAllText(file);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#1", servProjectName);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#2", servMsgType);
+	//		File.WriteAllText( newfilename, this.FileSource);
+			}
+			else
+			{
+		 		this.FileSource = File.ReadAllText(newfilename);
+			}	
+#><#=this.FileSource#>
+<#
+//			  File.WriteAllText(newfilename, this.FileSource);	
+		}
+//////USER SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		manager.StartNewFile("UserSection.cs", servProjectName);		
+		files = Directory.GetFiles(templatePath, "UserSection.txt");
+		
+		foreach (var file in files)
+		{	
+			if(!File.Exists(this.ProjectPath + servProjectName +"\\UserSection.cs"))
+
+			{ 
+				this.FileSource = String.Empty;
+				this.FileSource = File.ReadAllText(file);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#1", servProjectName);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#2", servMsgType);
+				//this.FileSource = Regex.Replace(this.FileSource, "Label#3", TmpVarName);
+			}
+			else
+			{
+				this.FileSource = File.ReadAllText(this.ProjectPath + servProjectName +"\\UserSection.cs");
+			}
+#><#=this.FileSource#>
+<#
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2", servProjectName);
+			File.WriteAllText(this.ProjectPath + servProjectName +"\\"+csFile+".cs", this.FileSource);
+		}
+//////SERVICE SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		manager.StartNewFile(servProjectName + ".cs", servProjectName);
+		files = Directory.GetFiles(templatePath, "Label2.txt");
+		
+		foreach (var file in files)
+		{	
+
+			this.FileSource = String.Empty;
+			this.FileSource = File.ReadAllText(file);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#1", servProjectName);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#2", Guid.NewGuid().ToString());
+			
+			var usingVar = String.Empty;
+			var libName = String.Empty;
+			var libPublish = String.Empty;
+			var libInterface = String.Empty;
+			var sb = new StringBuilder();
+			var sb4 = new StringBuilder();
+			var sb5 = new StringBuilder();
+			var sb6 = new StringBuilder();
+
+			if (!String.IsNullOrEmpty(servPublish))
+			{
+				var str0 = String.Format("private UbiqInterface {0} = null;", servPublish);
+				sb5.AppendLine(str0);
+
+				var str1 = String.Format("{0} = UbiqInterface.PublishInterface(this,"+'\u0022'+"{1}"+'\u0022'+", InterfaceAttrs.Duplex);", servPublish, servProjectName);
+				sb6.AppendLine(str1);
+			}
+
+			var servRefs = prjServ.Elements("References").ToList();
+			foreach (var servRef in servRefs)
+			{
+				var libRef = document.Root.Elements("Libraries").Where(t => t.Attribute("Name").Value == servRef.Attribute("Name").Value).FirstOrDefault();
+				
+				usingVar = libRef.Attribute("GetLibNamespace").Value;
+				libName = libRef.Attribute("GetLibName").Value;
+
+				var usings = usingVar.Split(';');
+				foreach (var tmp in usings)
+				{
+					usingVar = String.Format("using {0};", tmp);
+					sb.AppendLine(usingVar);
+
+				}
+
+				if (libName == "DBService") 
+				{
+					libInterface = libRef.Attribute("Interface").Value;
+					var libType = libRef.Attribute("LibType").Value;
+					var body = '\u007b' + "get; set;" + '\u007d';
+					var str = String.Format("\t\tprivate {0} DataBase {1}", libInterface, body);
+					var strType = String.Format("\t\t\tDataBase = new {0}(this);", libType);
+					strType = Regex.Replace(strType, "Label12", servProjectName);
+					sb5.AppendLine(str);
+					sb6.AppendLine(strType);
+					continue;
+				}
+				if (libName == "UbiqDispatcher")
+				{
+					var libType = libRef.Attribute("LibType").Value; 
+					var servSubsName = servRef.Attribute("SubscribeName").Value; 
+					var libPub = libRef.Attribute("Publish").Value; 
+					var strType = String.Format("{0} = new {1}(this,"+'\u0022'+"{2}"+'\u0022'+");", servSubsName, libType, libPub);
+					var str = String.Format(@"private {0} {1};", libType, servSubsName);
+					sb5.AppendLine(str);
+					sb6.AppendLine(strType);
+				}
+
+				libPublish = libRef.Attribute("Publish").Value;
+				sb4.AppendLine(String.Format("[Service("+'\u0022'+"{0}"+'\u0022'+","+'\u0022'+"{1}"+'\u0022'+")]",libName,libPublish));
+				
+			}
+			//using Ubiq.DispatcherAPI;
+			this.FileSource = Regex.Replace(this.FileSource, "Label#3", String.IsNullOrEmpty(sb.ToString()) ? String.Empty : sb.ToString());
+			
+			//[Service("UbiqDispatcher","IDispatcher")]
+			this.FileSource = Regex.Replace(this.FileSource, "Label#4", String.IsNullOrEmpty(sb4.ToString()) ? String.Empty : sb4.ToString() );
+			
+			//private IExtendedDBAPI DataBase { get; set; }
+			//private DispatcherSAPI _application0InPort0;
+			//private UbiqInterface _serviceOutPort0 = null; !!!
+			this.FileSource = Regex.Replace(this.FileSource, "Label#5", String.IsNullOrEmpty(sb5.ToString()) ? String.Empty : sb5.ToString() );
+			
+			//DataBase = new DBAPI<ArchitectureService1>(this);
+			//_application0InPort0 = new DispatcherSAPI(this, "IDispatcher");
+			//_serviceOutPort0 = UbiqInterface.PublishInterface(this, "ArchitectureService0", InterfaceAttrs.Duplex);!!!
+			this.FileSource = Regex.Replace(this.FileSource, "Label#6", String.IsNullOrEmpty(sb6.ToString()) ? String.Empty : sb6.ToString() );
+
+
+#><#=this.FileSource#>
+<#
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2", servProjectName);
+			File.WriteAllText(this.ProjectPath + servProjectName +"\\"+csFile+".cs", this.FileSource);
+
+		}
+	}	
+	manager.Process();
+	SaveAllProjects();
+
+
+	#region Build All Services
+	foreach (var prjServ in listServices)
+	{
+		var servProjectName = prjServ.Attribute("Name").Value; 
+		ProjectBuilder(this.ProjectPath + servProjectName, servProjectName);
+	}
+	#endregion
+	
+	#region Create all Templates, Add references, build template projects
+	var listTemplate = document.Root.Elements("Projects").Where(t => t.Attribute("Type").Value == "Template").ToList();
+	foreach (var prjTemp in listTemplate)
+	{
+		var tempProjectName = prjTemp.Attribute("Name").Value; 
+		var tempSrvRefs = prjTemp.Elements("References").ToList();
+		foreach (var prjTempSrv in tempSrvRefs)
+		{
+			var tmp = this.ProjectPath + "Temp\\" + prjTempSrv.Attribute("Name").Value + ".dll";
+			if (File.Exists(tmp)) //Only services
+				AddProjectReference(tempProjectName, tmp);
+		}
+
+		//Build Template
+		var servProjectName = prjTemp.Attribute("Name").Value; 
+		ProjectBuilder(this.ProjectPath + tempProjectName, tempProjectName);
+	}
+
+	#endregion
+
+	#region Create all Applications, build projects
+	var templateAppPath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\";
+	var listApplication = document.Root.Elements("Projects").Where(t => t.Attribute("Type").Value == "Application").ToList();
+	foreach (var prjApp in listApplication)
+	{
+		var appProjectName = prjApp.Attribute("Name").Value; 
+		var oldAppProjectName = prjApp.Attribute("OldName").Value;
+		if (!IsProjectExist(appProjectName))
+		{
+			ClearFolder(this.ProjectPath+appProjectName);
+			CreateNewProject(appProjectName, this.ProjectPath+appProjectName);
+			CreateLibsReference(appProjectName, this.AssemblyPath);
+			CreateServerReference(appProjectName, this.ServerPath);
+						
+		}
+		
+		if (!String.IsNullOrEmpty(oldAppProjectName))
+		{
+			if (Directory.Exists(this.ProjectPath+oldAppProjectName))
+            {
+				foreach(var file in Directory.GetFiles(this.ProjectPath+oldAppProjectName, "*.ubiqml"))
+				{
+					File.Delete(this.ProjectPath+appProjectName +@"\\UbiqDesign.ubiqml");
+					File.Copy(file, Path.Combine(this.ProjectPath + appProjectName, Path.GetFileName(file)));
+					File.Delete(file);
+				}
+
+				ClearFolder(this.ProjectPath+oldAppProjectName);
+				var prjDir = new DirectoryInfo(this.ProjectPath+oldAppProjectName);
+				prjDir.Delete();
+			}
+		}
+
+		var appRefs = prjApp.Elements("References").ToList();
+		foreach (var appRef in appRefs)
+		{
+			var tmp = this.ProjectPath + "Temp\\" + appRef.Attribute("Name").Value + ".dll";
+			//AddReference(appProjectName, tmp);
+			AddProjectReference(appProjectName, tmp);
+		}
+
+		var usingVar = String.Empty;
+		var libName = String.Empty;
+		var libInterface = String.Empty;
+		var libPublish = String.Empty;
+		var sb = new StringBuilder();
+		var sb4 = new StringBuilder();
+		var sb5 = new StringBuilder();
+		var sb6 = new StringBuilder();
+		var sb7 = new StringBuilder();
+		var sb8 = new StringBuilder();
+
+		var cnt = 0;
+		var ubiqmlFiles = Directory.GetFiles(this.ProjectPath+appProjectName, "*.ubiqml");
+		foreach (var ubiqmlFile in ubiqmlFiles)
+		{
+			var mlName = System.IO.Path.GetFileNameWithoutExtension(ubiqmlFile).ToString().ToLower();
+			if (cnt == 0)
+			{
+				sb5.AppendLine(String.Format("VisualElement _{0};", mlName));
+			}
+			else
+			{
+				sb5.AppendLine(String.Format("\t\tVisualElement _{0};", mlName));
+			}
+			cnt++;
+		}
+
+		foreach (var appRef in appRefs)
+		{
+			var libRef = document.Root.Elements("Projects").Where(t => t.Attribute("Name").Value == appRef.Attribute("Name").Value).FirstOrDefault();
+			if (libRef == null || libRef.Attribute("ApiName") == null) //Template have not ApiName attribute
+				continue;
+
+				var	apiName = libRef.Attribute("ApiName").Value;
+				var usingServ = libRef.Attribute("Name").Value;
+				sb.AppendLine(String.Format("using {0};", usingServ));
+				var str = String.Format("\t\tprivate {0} {1};", apiName, appRef.Attribute("SubscribeName").Value);
+				sb5.AppendLine(str);
+				var strServType = String.Format("\t\t{0} = new {1}(this);", appRef.Attribute("SubscribeName").Value, apiName);
+				sb6.AppendLine(strServType);
+		}
+
+		foreach (var appRef in appRefs)
+		{
+			var libRef = document.Root.Elements("Libraries").Where(t => t.Attribute("Name").Value == appRef.Attribute("Name").Value).FirstOrDefault();
+			if (libRef == null)
+				continue;
+			
+			//Is ubiq lib's
+			usingVar = libRef.Attribute("GetLibNamespace").Value;
+			libName = libRef.Attribute("GetLibName").Value;
+
+			var usings = usingVar.Split(';');
+			foreach (var tmp in usings)
+			{
+				usingVar = String.Format("using {0};", tmp);
+				sb.AppendLine(usingVar);
+
+			}
+
+			if (libName == "DBService") 
+			{
+				libInterface = libRef.Attribute("Interface").Value;
+				var libType = libRef.Attribute("LibType").Value;
+				var body = '\u007b' + "get; set;" + '\u007d';
+				var str = String.Format("\t\tprivate {0} DataBase {1}", libInterface, body);
+				var strType = String.Format("DataBase = new {0}(this);", libType);
+				strType = Regex.Replace(strType, "Label12", appProjectName);
+				sb5.AppendLine(str);
+				sb6.AppendLine(strType);
+				continue;
+			}
+
+			if (libName == "GMap")
+			{
+				var getLibName = libRef.Attribute("GetLibName").Value;
+				var libType = libRef.Attribute("LibType").Value; 
+				var servSubsName = appRef.Attribute("SubscribeName").Value; 
+				var libPub = libRef.Attribute("Publish").Value; 
+				var strType = String.Format("{0} = new {1}(this, Screen, (int)Screen.PhysicalWidth, (int)Screen.PhysicalHeight);", servSubsName, libType);
+				var str = String.Format(@"private {0} {1};", libType, servSubsName);
+				var str4 =  String.Format("[Service("+'\u0022'+"{0}"+'\u0022'+","+'\u0022'+"{1}"+'\u0022'+")]", getLibName, libPub); 
+ 
+				sb4.AppendLine(str4);
+				sb5.AppendLine(str);
+				sb6.AppendLine(strType);
+			}
+			
+			if (libName == "UbiqDispatcher")
+			{
+				var getLibName = libRef.Attribute("GetLibName").Value;
+				var libType = libRef.Attribute("LibType").Value; 
+				var servSubsName = appRef.Attribute("SubscribeName").Value; 
+				var libPub = libRef.Attribute("Publish").Value; 
+				var strType = String.Format("{0} = new {1}(this,"+'\u0022'+"{2}"+'\u0022'+");", servSubsName, libType, libPub);
+				var str = String.Format(@"private {0} {1};", libType, servSubsName);
+				var str4 =  String.Format("[Service("+'\u0022'+"{0}"+'\u0022'+","+'\u0022'+"{1}"+'\u0022'+")]", getLibName, libPub); 
+ 
+				sb4.AppendLine(str4);
+				sb5.AppendLine(str);
+				sb6.AppendLine(strType);
+			}
+
+		}
+
+		foreach (var appRef in appRefs)
+		{
+			var libRef = document.Root.Elements("Projects").Where(t => t.Attribute("Name").Value == appRef.Attribute("Name").Value).FirstOrDefault();
+			if (libRef == null)
+				continue;
+			if (libRef.Attribute("ApiName") == null && libRef != null)
+			{
+				var tempUbiqTemplate = Convert.ToBoolean(libRef.Attribute("UbiqTemplate").Value); 
+				var strServType = String.Format("{0}.{0}",libRef.Attribute("Name").Value);
+				sb8.AppendLine(strServType);
+				if(tempUbiqTemplate)
+				{
+					templateAppPath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\";
+				}
+				else
+				{
+					templateAppPath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\AppTemplate\";
+				}
+				break; //much more priority
+			}
+			else
+			{
+				templateAppPath = this.ProjectPath + @"Architecture\AppTemplates\DefaultTemplate\";
+			}
+		}
+//////APPLICATION SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		appManager.StartNewFile(appProjectName + ".cs", appProjectName);
+		var files = Directory.GetFiles(templateAppPath, "Label2.txt");
+		foreach (var file in files)
+		{	
+			
+			this.FileSource = String.Empty;
+			this.FileSource = File.ReadAllText(file);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#1", appProjectName);
+			this.FileSource = Regex.Replace(this.FileSource, "Label#2", Guid.NewGuid().ToString());
+			
+			//private IExtendedDBAPI DataBase { get; set; }
+			//private DispatcherSAPI _application0InPort0;
+			this.FileSource = Regex.Replace(this.FileSource, "Label#5", String.IsNullOrEmpty(sb5.ToString()) ? String.Empty : sb5.ToString() );
+			
+			//using Ubiq.DispatcherAPI;
+			this.FileSource = Regex.Replace(this.FileSource, "Label#3", String.IsNullOrEmpty(sb.ToString()) ? String.Empty : sb.ToString());
+						
+			this.FileSource = Regex.Replace(this.FileSource, "Label#4", String.IsNullOrEmpty(sb4.ToString()) ? String.Empty : sb4.ToString());
+
+			//DataBase = new DBAPI<ArchitectureService1>(this);
+			//_application0InPort0 = new DispatcherSAPI(this, "IDispatcher");
+			this.FileSource = Regex.Replace(this.FileSource, "Label#6", String.IsNullOrEmpty(sb6.ToString()) ? String.Empty : sb6.ToString() );
+
+			//var lbl7 = "_ubiqDesign = Screen.CreateElement("+ '\u0022' + "UbiqDesign" + '\u0022'+ ");";
+			var cnt1 = 0;
+			foreach (var ubiqmlFile in ubiqmlFiles)
+			{
+				var mlName = System.IO.Path.GetFileNameWithoutExtension(ubiqmlFile).ToString();
+				var lowMlName = System.IO.Path.GetFileNameWithoutExtension(ubiqmlFile).ToString().ToLower();
+				if (cnt1 == 0)
+				{
+					sb7.AppendLine(String.Format("_{0} = Screen.CreateElement("+ '\u0022' + "{1}" + '\u0022'+ ");", lowMlName, mlName));
+				}
+				else
+				{
+					sb7.AppendLine(String.Format("\t\t\t_{0} = Screen.CreateElement("+ '\u0022' + "{1}" + '\u0022'+ ");", lowMlName, mlName));
+				}
+				cnt1++;
+			}
+
+			this.FileSource = Regex.Replace(this.FileSource, "Label#7", String.IsNullOrEmpty(sb7.ToString()) ? String.Empty : sb7.ToString() );
+
+			//public partial class AntShip : GameTemplate.GameTemplate
+			this.FileSource = Regex.Replace(this.FileSource, "Label#8", String.IsNullOrEmpty(sb8.ToString()) ? String.Empty : sb8.ToString() );
+
+
+#><#=this.FileSource#>
+<#
+			string csFile = System.IO.Path.GetFileNameWithoutExtension(file);
+			csFile = Regex.Replace(csFile, "Label2", appProjectName);
+			File.WriteAllText(this.ProjectPath + appProjectName +"\\"+csFile+".cs", this.FileSource);
+
+		}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
+
+//////USER SECTION//////////////////////////////////////////////////////////////////////////////////////////////////		
+		appManager.StartNewFile("UserSection.cs", appProjectName);	
+		
+		files = Directory.GetFiles(templateAppPath, "UserSection.txt");
+		
+		if (libName == "GMap")
+		{
+			files = Directory.GetFiles(templateAppPath, "UserSection1.txt");
+		}
+
+
+		foreach (var file in files)
+		{	
+			if(!File.Exists(this.ProjectPath + appProjectName +"\\UserSection.cs"))
+
+			{ 
+				this.FileSource = String.Empty;
+				this.FileSource = File.ReadAllText(file);
+				this.FileSource = Regex.Replace(this.FileSource, "Label#1", appProjectName);
+				foreach (var appRef in appRefs) //GMapAPI
+				{
+					var servSubsName = appRef.Attribute("SubscribeName").Value;
+					this.FileSource = Regex.Replace(this.FileSource, "Label#2", String.IsNullOrEmpty(servSubsName) ? String.Empty : servSubsName );
+				}
+			}
+			else
+			{
+				this.FileSource = File.ReadAllText(this.ProjectPath + appProjectName +"\\UserSection.cs");
+			}
+	#><#=this.FileSource#>
+	<#
+				File.WriteAllText(this.ProjectPath + appProjectName +"\\UserSection.cs", this.FileSource);
+			}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
+
+	}
+
+	appManager.Process();
+	//SaveAllProjects();
+	ClearFolder(this.ProjectPath + @"\Temp\");
+	ClearFolder(this.ProjectPath + @"\Output\SandBox\App\");
+
+	foreach (var prjApp in listApplication)
+	{
+		var appProjectName = prjApp.Attribute("Name").Value; 
+		ProjectBuilder(this.ProjectPath + appProjectName, appProjectName);
+		
+	}
+	
+	foreach(var file in Directory.GetFiles(this.ProjectPath + @"\Temp\"))
+		File.Copy(file, Path.Combine(this.ProjectPath + @"\Output\SandBox\App\", Path.GetFileName(file)));
+
+	#endregion
+
+	#endregion
+	#endregion
+
+#>
+
+<#+
+
+	#region Global Variable
+	public XDocument document;
+	public string ProjectName = string.Empty;
+	public string ProjectPath = string.Empty;
+	public string AssemblyPath = string.Empty;
+	public string ServerPath = string.Empty;
+	public string FileSource = string.Empty;
+	public DTE _dte = null;
+
+
+	#endregion
+
+	public bool IsProjectExist(string ProjectName)
+    {
+
+		foreach (Project project in _dte.Solution)
+		{
+			ProjectItems projItems = project.ProjectItems;
+			if (project.Name==ProjectName)
+			{
+				return true;
+            }
+        }
+		return false;
+	}
+
+	#region Build Project
+	public void ProjectBuilder(string ProjectPath, string ProjectName)
+	{
+        var p = new System.Diagnostics.Process
+            {
+                StartInfo =
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        FileName = @"C:\Windows\Microsoft.NET\Framework\v4.0.30319\msbuild.exe",
+                        Arguments = string.Format(@"""{0}\{1}.csproj"" {2}", ProjectPath, ProjectName, String.Format(@"/p:WarningLevel=0;PostBuildEvent=;OutputPath=""{0}Temp""",this.ProjectPath))
+
+                    }
+            };
+            p.Start();
+            var output = p.StandardOutput.ReadToEnd();
+			output = Encoding.GetEncoding(866).GetString(Encoding.GetEncoding(1251).GetBytes(output));
+
+			CreateOutputWindow("Ubiq Server Event Log", output);
+				
+            p.WaitForExit();
+			p.Close();
+	}
+	#endregion
+	public void CreateNewProject(string ProjectName, string ProjectPath)
+    {
+
+		try
+		{
+			//IServiceProvider serviceProvider = (IServiceProvider)this.Host;
+			//EnvDTE.DTE dte = (EnvDTE.DTE) serviceProvider.GetService(typeof(EnvDTE.DTE));
+			EnvDTE.Solution soln = _dte.Solution;
+			soln.DTE.MainWindow.Visible = true;
+			EnvDTE80.Solution2 soln2 = soln as EnvDTE80.Solution2;
+			string csTemplatePath = soln2.GetProjectTemplate("UbiqApp.zip", "CSharp");
+			soln.AddFromTemplate(csTemplatePath, ProjectPath, ProjectName, false);
+		} 
+		catch
+		{
+		}
+    }
+
+	public void CreateOutputWindow(string title, string message)
+    {
+		EnvDTE80.DTE2 _dte2 = null;
+		var hostServiceProvider = (IServiceProvider)this.Host;
+		if (hostServiceProvider == null)
+		{
+			throw new ArgumentNullException("Could not obtain hostServiceProvider");
+		}
+
+		_dte2 = (EnvDTE80.DTE2) hostServiceProvider.GetService(typeof(EnvDTE.DTE));
+			
+
+        var panes = _dte2.ToolWindows.OutputWindow.OutputWindowPanes;
+        OutputWindowPane owP;
+        try
+        {
+            owP = panes.Item(title);
+        }
+        catch (ArgumentException)
+        {
+            owP = panes.Add(title);
+        }
+
+        owP.Activate();
+        owP.OutputString(message);
+    }
+
+	public void SaveAllProjects()
+	{
+		try
+		{
+			_dte.ExecuteCommand("File.SaveAll");
+		}
+		catch
+		{
+		}
+	}
+
+	public void GetCurrentDte()
+	{
+		var hostServiceProvider = (IServiceProvider)this.Host;
+		if (hostServiceProvider == null)
+		{
+			throw new ArgumentNullException("Could not obtain hostServiceProvider");
+		}
+
+		if (_dte == null)
+		_dte = (EnvDTE.DTE) hostServiceProvider.GetService(typeof(EnvDTE.DTE));
+			
+		if (_dte == null)
+		{
+			throw new ArgumentNullException("Could not obtain DTE from host");
+		}
+	}
+
+	public string GetBaseProjectName()
+	{ 
+		foreach (Project prj in _dte.Solution.Projects)
+        {
+			var ubiqItem = prj.ProjectItems.Cast<ProjectItem>()
+                                    .Where(
+                                        prjItem =>
+                                        prjItem.Name == "GeneratedCode.tt" ||
+                                        Path.GetExtension(prjItem.Name) == ".ubiqml");
+                var projectUbiqItems = ubiqItem as IList<ProjectItem> ?? ubiqItem.ToList();
+                if (projectUbiqItems.Any())
+                {
+					return prj.Name;
+				}
+		}
+		return String.Empty;
+	}
+
+	public void CreateNewProject1(string ProjectName, string ProjectPath)
+    {
+
+		try
+		{
+			//IServiceProvider serviceProvider = (IServiceProvider)this.Host;
+			//EnvDTE.DTE dte = (EnvDTE.DTE) serviceProvider.GetService(typeof(EnvDTE.DTE));
+			EnvDTE.Solution soln = _dte.Solution;
+			soln.DTE.MainWindow.Visible = true;
+			EnvDTE80.Solution2 soln2 = soln as EnvDTE80.Solution2;
+			string csTemplatePath = soln2.GetProjectTemplate("BlankClassLibrary.zip", "CSharp");
+			soln.AddFromTemplate(csTemplatePath, ProjectPath, ProjectName, false);
+		} 
+		catch
+		{
+		}
+    }
+
+	public void ClearFolder(string FolderName)
+	{
+		try
+			{
+				DirectoryInfo dir = new DirectoryInfo(FolderName);
+
+				foreach (FileInfo fi in dir.GetFiles())
+				{
+					fi.IsReadOnly = false;
+					fi.Delete();
+				}
+
+				foreach (DirectoryInfo di in dir.GetDirectories())
+				{
+					ClearFolder(di.FullName);
+					di.Delete();
+				}
+			}
+			catch
+            {
+			}
+	}
+
+	public void CreateLibsReference(string app, string outputPath)
+	{
+		var filesLib = new[] { "Authentification.dll", "DBService.dll", "DispatcherService.dll", "protobuf-net.dll", "GMapAPI.dll" };
+        foreach (var fileName in filesLib)
+        {
+			if (fileName == null) continue;
+            var pathLib = Path.Combine(outputPath, fileName);
+			AddReference(app, pathLib); 
+		}
+	}
+
+	public void CreateServerReference(string app, string outputPath)
+	{
+		var filesLib = new[] { "ServerCore.dll" };
+        foreach (var fileName in filesLib)
+        {
+			if (fileName == null) continue;
+            var pathLib = Path.Combine(outputPath, fileName);
+			AddReference(app, pathLib); 
+		}
+	}
+
+	public void AddProjectReference(string ProjectName, string ReferencePath)
+	{
+		string	referenceProject = Path.GetFileNameWithoutExtension(ReferencePath);
+		if(IsProjectHaveReference(ProjectName, referenceProject))
+			return;
+		try
+		{
+			Project refProject = null;
+
+			foreach (Project project in _dte.Solution)
+			{
+				if (project.Name == referenceProject)
+				{
+					refProject = project;
+				}
+			}
+
+			foreach (Project project in _dte.Solution)
+			{
+				
+				ProjectItems projItems = project.ProjectItems;
+				if (project.Name==ProjectName)
+				{
+					//добавляем сылку 
+					VSProject2 aVSProject = ((VSProject2)(project.Object)); 
+					Reference3 newRef = ((Reference3)(aVSProject.References.AddProject(refProject)));
+					newRef.CopyLocal = false;
+				}
+			}
+		} 
+		catch
+		{
+		}
+	}
+
+	public void AddReference(string ProjectName, string ReferencePath)
+	{
+		string	str = Path.GetFileNameWithoutExtension(ReferencePath);
+		if(IsProjectHaveReference(ProjectName, str))
+			return;
+		try
+		{
+
+			foreach (Project project in _dte.Solution)
+			{
+				string msg = string.Empty;
+				string msg1 = string.Empty;
+
+				ProjectItems projItems = project.ProjectItems;
+
+				if (project.Name==ProjectName)
+				{
+					//добавляем сылку 
+					VSProject2 aVSProject = ((VSProject2)(project.Object)); 
+					Reference3 newRef = ((Reference3)(aVSProject.References.Add(ReferencePath)));
+					newRef.CopyLocal = false;
+				}
+			}
+		} 
+		catch
+		{
+		}
+	}
+
+	public bool IsProjectHaveReference(string ProjectName, string RefName)
+    {
+		foreach (Project project in _dte.Solution)
+		{
+			ProjectItems projItems = project.ProjectItems;
+			//Property prop;
+
+			if (project.Name==ProjectName)
+			{
+				VSProject2 aVSProject = ((VSProject2)(project.Object));
+
+				//List<Reference> searchResult = new List<Reference>().Where(c=> c.Name != "MApp").ToList();
+				foreach (Reference reference in aVSProject.References)
+                {
+					if (reference.Name == RefName)
+						return true;
+				}
+			}
+		}
+		return false;
+	}
+#>

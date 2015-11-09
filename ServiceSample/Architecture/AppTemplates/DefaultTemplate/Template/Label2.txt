@@ -1,0 +1,25 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using Ubiq.Graphics;
+using Ubiq.InterfaceAPI;
+Label#3
+
+namespace Label#1
+{
+    Label#4
+    [UbiqTemplate(Label#9)]
+    public abstract partial class Label#1 : MExtendedThreadApp
+    {
+        Label#5
+
+        protected sealed override async Task MainOverride()
+        {
+            Label#6
+
+            await UserSection();
+        }
+    }
+}

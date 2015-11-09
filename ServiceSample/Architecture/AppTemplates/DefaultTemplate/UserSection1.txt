@@ -1,0 +1,28 @@
+﻿using Ubiq.Graphics;
+using System.Threading.Tasks;
+
+namespace Label#1
+{
+    partial class Label#1
+    {
+	    //User section for bussines logic
+	    //Your code should be inserted here
+        protected async Task UserSection()
+        {
+			Label#2.setZoom(10);
+            Label#2.renderMap("Санкт-Петербург");
+			Label#2.RaiseMapControlEvent += Label#2_RaiseMapControlEvent;
+
+			for (; ; )
+            {
+				Screen.Content = Label#2.getMapOverlaypanel();
+                await Wait();
+            }
+        }
+
+		void Label#2_RaiseMapControlEvent(object sender, Ubiq.GMapAPI.MapControlEventArgs e)
+        {
+            
+        }
+	}
+}

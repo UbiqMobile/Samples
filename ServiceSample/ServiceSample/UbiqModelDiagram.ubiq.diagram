@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ubiqDesignerDiagram dslVersion="1.0.0.0" Id="71a32dd9-bc61-40a4-9f32-3d014859d407" absoluteBounds="0, 0, 11, 8.5" name="UbiqDesigner">
+  <componentModelMoniker Id="334f421c-5f3f-42cb-a87f-56cd79e282c1" />
+  <nestedChildShapes>
+    <applicationShape Id="e94aefbd-b273-4c4d-8a09-3b3e65ae4b36" absoluteBounds="4, 0.625, 1.5, 1">
+      <applicationMoniker name="/334f421c-5f3f-42cb-a87f-56cd79e282c1/DemoUI" />
+      <relativeChildShapes>
+        <inPortShape Id="037ded94-45b6-44ac-b771-e8cc757662d0" absoluteBounds="3.9, 1.03125, 0.2, 0.2">
+          <inPortMoniker name="/334f421c-5f3f-42cb-a87f-56cd79e282c1/DemoUI/Application0InPort0" />
+        </inPortShape>
+      </relativeChildShapes>
+    </applicationShape>
+    <serviceShape Id="def72bc1-ff86-4f14-abf5-b753be4fb128" absoluteBounds="0.875, 0.625, 1.5, 1">
+      <serviceMoniker name="/334f421c-5f3f-42cb-a87f-56cd79e282c1/ServiceDemo" />
+      <relativeChildShapes>
+        <outPortShape Id="744a0497-4825-43ad-82cc-a5feb2d0c8ff" absoluteBounds="2.2333333333333334, 1.0145833333333334, 0.2, 0.2">
+          <outPortMoniker name="/334f421c-5f3f-42cb-a87f-56cd79e282c1/ServiceDemo/ArchitectureService0OutPort0" />
+        </outPortShape>
+      </relativeChildShapes>
+    </serviceShape>
+    <associationLink Id="b03e5cda-cde0-403c-8c7f-7e58bb9dfccc" edgePoints="[(2.43333333333333 : 1.11458333333333); (2.80833333333333 : 1.11458333333333); (2.80833333333333 : 1.13125); (3.9 : 1.13125)]" fixedFrom="Caller" fixedTo="Caller">
+      <connectionMoniker Id="3bfc0876-4328-4539-8338-90d3e3241079" />
+      <relativeChildShapes />
+      <nodes>
+        <outPortShapeMoniker Id="744a0497-4825-43ad-82cc-a5feb2d0c8ff" />
+        <inPortShapeMoniker Id="037ded94-45b6-44ac-b771-e8cc757662d0" />
+      </nodes>
+    </associationLink>
+  </nestedChildShapes>
+</ubiqDesignerDiagram>

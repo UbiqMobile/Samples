@@ -1,6 +1,6 @@
 ﻿# UbiqMobile Samples
 
-
+Samples projects for [UBiqMobile](http://ubiqmobile.com) platform.
 
 ## ![Counter](Counter/readme.md)
 

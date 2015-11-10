@@ -1,23 +1,26 @@
-﻿## Camera
+﻿[Examples list](../readme.md)
+
+## Camera
 
 This project demonstrates integration with external data source (unofficial grab ivideon thumbnails)
 
-	В этом примере показана интеграция с внешним источником данных (неофициальная интеграция с сервисом ivideon).
-	Камера добавляется по уникальному номеру вида 100-066e23cd012e8f79afc37722e07bf694. В коде есть уже 3 (+3() добавленных камеры,
-	новые можно добавить через чтение QR-кода. 
-	Описание UI: 
-	1) экран со списком камер и кнопкой добавления, нажатие на которую переведет телефон в режим чтения QR-кода.
-	2) экран отображающий информацию (ошибка доступа к камере, ожидание ответа от камеры)
-	3) экран просмотра изображения с камеры.
-	
-	NB: Картинка с камеры обновляется раз в несколько секуд (обычно около 5!), т.к. интеграция неофициальная.
-	
-	Camera\CameraUI\
-		Вся существенная часть находится в проекте CameraUI.
-	Camera\CameraUI\Design\
-		Файлы разметки пользовательского интерфейса и картинки.
-	Camera\CameraUI\CameraUI.cs 
-		Автоматически создаваемый файл, содержит служебную часть кода для приложения на платформе UbiqMobile.
-	Camera\CameraUI\UserSection.cs 
-		Основная логика программы. 
-		
+You can add a new camera using uniq id like a 100-066e23cd012e8f79afc37722e07bf694. There are three already hardcoded cameras. New cameras can be added via QR-code.
+
+UI description: 
+1. main screen shows list of the web-cameras экран and has add button that causes QR-code reading mode;
+2. info screen is used for display errors or on waiting image loading;
+3. image view screen.
+
+**NB**: Real update timeout is about 5 second because this is timeout of external data source.
+
+[CameraUI/Design/](./CameraUI/Design/)
+
+UI markup and graphic resources.
+
+[CameraUI/CameraUI.cs](./CameraUI/CameraUI.cs)
+
+This auto-generated file contains system UbiqMobile platform code.
+
+[CameraUI/UserSection.cs](./CameraUI/UserSection.cs)
+
+Main business logic of the application 

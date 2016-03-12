@@ -24,12 +24,12 @@ namespace CounterUI
         SelectableArea minusButton;
 
         //User section for bussines logic
-	    //Your code should be inserted here
+        //Your code should be inserted here
         protected async Task UserSection()
         {
             _counter = 0;
 
-			Screen.Content = _ubiqDesign;
+            Screen.Content = _ubiqDesign;
             counterText = _ubiqDesign.GetChildByName("tbNumber") as TextBlock;
             minusButton = _ubiqDesign.GetChildByName("btMinus") as SelectableArea;
             plusButton = _ubiqDesign.GetChildByName("btPlus") as SelectableArea;
@@ -54,7 +54,7 @@ namespace CounterUI
             _counter--;
             counterText.Text = _counter.ToString();
         }
-	}
+    }
 }
 
 

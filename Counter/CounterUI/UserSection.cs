@@ -17,7 +17,7 @@ namespace CounterUI
 {
     partial class CounterUI
     {
-        private int _couter;
+        private int _counter;
 
         TextBlock counterText;
         SelectableArea plusButton;
@@ -27,7 +27,7 @@ namespace CounterUI
 	    //Your code should be inserted here
         protected async Task UserSection()
         {
-            _couter = 0;
+            _counter = 0;
 
 			Screen.Content = _ubiqDesign;
             counterText = _ubiqDesign.GetChildByName("tbNumber") as TextBlock;
@@ -45,14 +45,14 @@ namespace CounterUI
 
         void plusButton_Clicked(SelectableArea sender, EventArgs e)
         {
-            _couter++;
-            counterText.Text = _couter.ToString();
+            _counter++;
+            counterText.Text = _counter.ToString();
         }
 
         void minusButton_Clicked(SelectableArea sender, EventArgs e)
         {
-            _couter--;
-            counterText.Text = _couter.ToString();
+            _counter--;
+            counterText.Text = _counter.ToString();
         }
 	}
 }
